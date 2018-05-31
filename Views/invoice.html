@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice</title>
+    
+    <style>    
+    @media only screen and (max-width: 600px) {
+        .invoice-box table tr.top table td{
+            width:100%;
+            display:block;
+            text-align:center;
+        }
+        
+        .invoice-box table tr.information table td{
+            width:100%;
+            display:block;
+            text-align:center;
+        }
+    }
+    </style>
+</head>
+
+<body>
+    <div class="invoice-box" style=" max-width:800px;
+        margin:auto;
+        padding:30px;
+        border:1px solid #eee;
+        box-shadow:0 0 10px rgba(0, 0, 0, .15);
+        font-size:16px;
+        line-height:24px;
+        font-family:'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+        color:#555;">
+        <table style="width:100%;
+        line-height:inherit;
+        text-align:left;" cellpadding="0" cellspacing="0">
+            <tr class="top">
+                <td colspan="2" style="padding:5px;
+        vertical-align:top;">
+                    <table>
+                        <tr>
+                            <td class="title" style="padding:5px;padding-left: 0px;
+        vertical-align:top; padding-bottom:1px;font-size:45px;
+        line-height:0px;
+        color:#333;">
+                                <img src="http://35.161.2.107/dev/cargoclick-frontend/app/img/logo_cargo_click.png" style="width:100%; max-width:200px;">
+                            </td>
+                            
+                            
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            
+            <tr class="information">
+                <td colspan="2">
+                    <table style="width:100%;line-height:inherit;text-align:left;">
+                        <tr>
+                            <td style="padding:5px;
+        vertical-align:top; padding-bottom:40px;">
+                                <span style="font-weight: bold;">BILL TO</span><br>
+                                {{companyName}}<br>
+                                {{name}}<br>
+                                {{email}}
+                            </td>
+                            <td style="padding:5px;
+        vertical-align:top;text-align:right; padding-bottom:40px;">
+                                Invoice #: {{invNumber}}<br>
+                                Created: {{createdAt}}<br>
+                                Due: {{dueDate}}
+                            </td>
+                            
+                           
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            
+            <tr class="heading">
+                <td style="font-weight: bold;font-size: 18px;padding:5px;
+        vertical-align:top;background:#fff;
+        border-top:2px solid #000;
+        border-bottom:1px solid #000;
+        font-weight:bold;">
+                    INVOICE TOTAL
+                </td>
+                
+                <td style="font-weight: bold;font-size: 18px;padding:5px;
+        vertical-align:top;text-align:right;background:#fff;
+        border-top:2px solid #000;
+        border-bottom:1px solid #000;
+        font-weight:bold;">
+                    {{total}}
+                </td>
+            </tr>
+            
+            
+            <tr >
+                <tr><br></tr>
+                <td style="padding:5px;
+        vertical-align:top;">
+                    <small style="color: black">Description</small>
+                </td>
+                
+                <td style="padding:5px;
+        vertical-align:top;text-align:right;">
+                    <small style="color: black">Amount</small>
+                </td>
+            </tr>
+            
+            <tr class="item">
+                <td style="padding:5px;
+        vertical-align:top;border-bottom:1px solid #eee;">
+                    Actual Shipment Cost to Driver 
+                </td>
+                
+                <td style="padding:5px;
+        vertical-align:top;text-align:right;border-bottom:1px solid #eee;">
+                    {{actualShipment}}
+                </td>
+            </tr>
+            
+            <tr class="item">
+                <td style="padding:5px;
+        vertical-align:top;border-bottom:1px solid #eee;">
+                    CargoClick Commission
+                </td>
+                
+                <td style="padding:5px;
+        vertical-align:top;text-align:right;border-bottom:1px solid #eee;">
+                    {{commision}}
+                </td>
+            </tr>
+            
+            <tr class="item last">
+                <td style="padding:5px;
+        vertical-align:top;border-bottom:1px solid #eee;">
+                    Credit Card Charge
+                </td>
+                
+                <td style="padding:5px;
+        vertical-align:top;text-align:right;border-bottom:1px solid #eee;">
+                    {{creditCardCharge}}
+                </td>
+            </tr>
+            <tr class="item last">
+                <td style="padding:5px;
+        vertical-align:top;border-bottom:1px solid #eee;border-bottom:none;">
+                    Shipment Status
+                </td>
+                
+                <td style="padding:5px;
+        vertical-align:top;text-align:right;border-bottom:1px solid #eee;border-bottom:none;">
+                    {{shipmentStatus}}
+                </td>
+            </tr>
+            
+            
+        </table>
+    </div>
+</body>
+</html>
