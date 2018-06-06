@@ -56,7 +56,7 @@ module.exports = [
       },
       validate: {
         payload: {
-          /*firstName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
+          firstName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
           lastName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
           fatherName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
           countryCode: Joi.string().max(4).optional().trim(),
@@ -76,7 +76,7 @@ module.exports = [
           profilePic: Joi.any()
               .meta({ swaggerType: 'file' })
               .optional()
-              .description('image file')*/
+              .description('image file')
         },
         failAction: UniversalFunctions.failActionFunction
       },
