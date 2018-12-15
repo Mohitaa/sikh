@@ -14,10 +14,10 @@ if (process.env.NODE_ENV === 'test') {
 } else if (process.env.NODE_ENV === 'live') {
   mongoURL = 'mongodb://' + process.env.MONGO_USER + ':' + process.env.MONGO_PASS + '@localhost/' + process.env.MONGO_DBNAME_LIVE;
 } else {
- // mongoURL = 'mongodb://localhost/sikhdir';
+ mongoURL = 'mongodb://localhost/sikhdir';
 //  mongoURL = 'mongodb://mamta:admin@ds235850.mlab.com:35850/sikhdir';
 
-  mongoURL = 'mongodb://' + mongoUser + ':' + mongoPassword + '@localhost/' + env;
+ // mongoURL = 'mongodb://' + mongoUser + ':' + mongoPassword + '@localhost/' + env;
 }
 
 mongo = {

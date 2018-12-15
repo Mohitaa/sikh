@@ -6,7 +6,7 @@ var winston = require('winston');
 var async = require('async');
 var Service = require('../Services');
 var NotificationManager = require('../Lib/NotificationManager');
-var createUser, verifyOTP, resendOTP, loginUser;
+var createUser, verifyOTP, resendOTP, loginUser, socialSignUp, changePassword;
 
 
 // user register own by app
@@ -16,6 +16,7 @@ createUser = function (payloadData, callback) {
   var userData = null;
   var dataToUpdate = {};
   var dataToSave = payloadData;
+  payloadData.email = payloadData.email.toLowerCase();
   winston.info('sending', payloadData);
   if (payloadData.facebookId === 'undefined') {
     delete payloadData.facebookId;
@@ -37,7 +38,14 @@ createUser = function (payloadData, callback) {
   }
 
   async.series([
-
+    function (cb) {
+      // verify email address
+      if (!UniversalFunctions.verifyEmailFormat(dataToSave.email)) {
+        cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INVALID_EMAIL);
+      } else {
+        cb();
+      }
+    },
     function (cb) {
       // Validate for facebookId and password
       if (dataToSave.facebookId) {
@@ -48,26 +56,6 @@ createUser = function (payloadData, callback) {
         }
       } else if (!dataToSave.password) {
         cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.PASSWORD_REQUIRED);
-      } else {
-        cb();
-      }
-    },
-    function (cb) {
-      // Validate countryCode
-      if (dataToSave.countryCode.lastIndexOf('+') === 0) {
-        if (!isFinite(dataToSave.countryCode.substr(1))) {
-          cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INVALID_COUNTRY_CODE);
-        } else {
-          cb();
-        }
-      } else {
-        cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INVALID_COUNTRY_CODE);
-      }
-    },
-    function (cb) {
-      // Validate phone No
-      if (dataToSave.phoneNo && dataToSave.phoneNo.split('')[0] === 0) {
-        cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INVALID_PHONE_NO_FORMAT);
       } else {
         cb();
       }
@@ -98,23 +86,8 @@ createUser = function (payloadData, callback) {
       Service.UserService.updateUser(criteria, setQuery, options, cb);
     },
     function (cb) {
-      var criteria = {
-        phoneNo: dataToSave.phoneNo
-      };
-      var projection = {};
-      Service.UserService.getUser(criteria, projection, {lean: true}, function (err, data) {
-        if (err) cb(err);
-        else if (data && data.length) {
-          cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.PHONE_NO_EXIST);
-        } else {
-          cb();
-        }
-      });
-    },
-    function (cb) {
       // Insert Into DB
       dataToSave.OTPCode = uniqueCode;
-      dataToSave.newNumber = payloadData.phoneNo;
       dataToSave.registrationDate = new Date().toISOString();
       dataToSave.emailVerificationToken = UniversalFunctions.CryptData(JSON.stringify(dataToSave));
       dataToSave.referralCode = UniversalFunctions.generateRandomStringNumber(8);
@@ -128,18 +101,127 @@ createUser = function (payloadData, callback) {
       });
     },
     function (cb) {
-      // Send SMS to User
+      // Set Access Token
+      var tokenData;
       if (userData) {
-        NotificationManager.sendSMSToFactor(uniqueCode, dataToSave.countryCode, dataToSave.phoneNo, function (err, data) {
-          cb();
+        tokenData = {
+          id: userData._id,
+          type: UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.USER_ROLES.USER
+        };
+        TokenManager.setToken(tokenData, function (err, output) {
+          if (err) {
+            cb(err);
+          } else {
+            accessToken = output && output.accessToken || null;
+            cb();
+          }
         });
       } else {
         cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.IMP_ERROR);
       }
+    }
+  ], function (err, data) {
+    if (err) {
+      callback(err);
+    } else {
+      callback(null, {
+        accessToken: accessToken,
+        userDetails: UniversalFunctions.deleteUnnecessaryUserData(userData)
+      });
+    }
+  });
+};
+
+// user register by socail signUp
+socialSignUp = function (payloadData, callback) {
+  var accessToken = null;
+  var uniqueCode = null;
+  var dataToSave = payloadData;
+  var userData = null;
+  var dataToUpdate = {};
+  dataToSave.firstTimeLogin = false;
+  winston.info('sending', payloadData);
+  payloadData.email = payloadData.email.toLowerCase();
+  dataToUpdate.profilePicURL = {
+    original: null,
+    thumbnail: null
+  };
+
+  async.series([
+    function (cb) {
+      // Validate already exit or not
+
+      var criteria = {
+        'social.socialMode': dataToSave.social.socialMode,
+        'social.socialId': dataToSave.social.socialId
+
+      };
+      var option = {};
+      var projection = {};
+      Service.UserService.getOneUser(criteria, projection, option, function (err, DataFromDB) {
+        if (err) {
+          cb(err);
+        } else if (DataFromDB === null) {
+          cb();
+        } else {
+          cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.SOCIAL_ID);
+        }
+      });
+    },
+
+    function (cb) {
+      // verify email address
+      if (!UniversalFunctions.verifyEmailFormat(dataToSave.email)) {
+        cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INVALID_EMAIL);
+      } else {
+        cb();
+      }
+    },
+
+    function (cb) {
+      CodeGenerator.generateUniqueCode(5, UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.USER_ROLES.USER, function (err, numberObj) {
+        if (err) {
+          cb(err);
+        } else if (!numberObj || numberObj.number === null) {
+          cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.UNIQUE_CODE_LIMIT_REACHED);
+        } else {
+          uniqueCode = numberObj.number;
+          cb();
+        }
+      });
     },
     function (cb) {
-      // Set Access Token
+      // Clear Device Tokens if present anywhere else
+      var criteria = {
+        deviceToken: dataToSave.deviceToken
+      };
+      var setQuery = {
+        $unset: {deviceToken: 1}
+      };
+      var options = {
+        multi: true
+      };
+      Service.UserService.updateUser(criteria, setQuery, options, cb);
+    },
+
+    function (cb) {
+      // Insert Into
+      dataToSave.OTPCode = uniqueCode;
+      dataToSave.registrationDate = new Date().toISOString();
+      dataToSave.emailVerificationToken = UniversalFunctions.CryptData(JSON.stringify(dataToSave));
+      dataToSave.referralCode = UniversalFunctions.generateRandomStringNumber(8);
+      Service.UserService.createUser(dataToSave, function (err, userDataFromDB) {
+        if (err) {
+          cb(err);
+        } else {
+          userData = userDataFromDB;
+          cb();
+        }
+      });
+    },
+    function (cb) {
       var tokenData;
+      // Set Access Token
       if (userData) {
         tokenData = {
           id: userData._id,
@@ -295,8 +377,16 @@ loginUser = function (payloadData, callback) {
 
   async.series([
     function (cb) {
+      // verify email address
+      if (!UniversalFunctions.verifyEmailFormat(payloadData.email)) {
+        cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INVALID_EMAIL);
+      } else {
+        cb();
+      }
+    },
+    function (cb) {
       var criteria = {
-        phoneNo: payloadData.phoneNo
+        email: payloadData.email
       };
       var projection = {};
       var option = {
@@ -314,7 +404,7 @@ loginUser = function (payloadData, callback) {
     function (cb) {
       // validations
       if (!userFound) {
-        cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.PHONE_NOT_FOUND);
+        cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INVALID_EMAIL);
       } else if (userFound && userFound.password !== UniversalFunctions.CryptData(payloadData.password)) {
         cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INCORRECT_PASSWORD);
       } else if (userFound.isBlocked === true) {
@@ -323,7 +413,7 @@ loginUser = function (payloadData, callback) {
         cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.DELETED);
       } else {
         successLogin = true;
-        cb(null,userFound);
+        cb(null, userFound);
       }
     },
     function (cb) {
@@ -352,7 +442,7 @@ loginUser = function (payloadData, callback) {
         _id: userFound._id
       };
       var setQuery = {
-        appVersion: payloadData.appVersion,
+        appVersion: payloadData.appVersion || 1,
         deviceToken: payloadData.deviceToken,
         deviceType: payloadData.deviceType
       };
@@ -412,11 +502,11 @@ checkPhoneNumber = function (payloadData, callback) {
     if (err) {
       callback(err);
     } else {
-     phoneNoFound = result && result[0] || null;
+      phoneNoFound = result && result[0] || null;
       if (phoneNoFound) {
         callback(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.PHONE_ALREADY_EXIST);
       } else {
-        callback(null,UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.SUCCESS.DEFAULT);
+        callback(null, UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.SUCCESS.DEFAULT);
       }
 
 
@@ -425,11 +515,71 @@ checkPhoneNumber = function (payloadData, callback) {
 
 };
 
+changePassword = function (queryData, userData, callback) {
+  var userFound = null;
+  if (!queryData.oldPassword || !queryData.newPassword || !userData) {
+    callback(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.IMP_ERROR);
+  } else {
+    async.series([
+      function (cb) {
+        var criteria = {
+          _id: userData.id
+        };
+        var projection = {};
+        var options = {
+          lean: true
+        };
+        Service.UserService.getUser(criteria, projection, options, function (err, data) {
+          if (err) {
+            cb(err);
+          } else if (data && data.length > 0 && data[0]._id) {
+            userFound = data[0];
+            cb();
+          } else {
+            cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.NOT_FOUND);
+          }
+        });
+      },
+      function (cb) {
+        // Check Old Password
+        if (userFound.password !== UniversalFunctions.CryptData(queryData.oldPassword)) {
+          cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.INCORRECT_OLD_PASS);
+        } else if (userFound.password === UniversalFunctions.CryptData(queryData.newPassword)) {
+          cb(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR.SAME_PASSWORD);
+        } else {
+          cb();
+        }
+      },
+      function (cb) {
+        // Update User Here
+        var criteria = {
+          _id: userFound._id
+        };
+        var setQuery = {
+          $set: {
+            firstTimeLogin: false,
+            password: UniversalFunctions.CryptData(queryData.newPassword)
+          }
+        };
+        var options = {
+          lean: true
+        };
+        Service.UserService.updateUser(criteria, setQuery, options, cb);
+      }
+
+    ], function (err, result) {
+      callback(err, null);
+    });
+  }
+};
+
 module.exports = {
   createUser: createUser,
   user: user,
   verifyOTP: verifyOTP,
   resendOTP: resendOTP,
   loginUser: loginUser,
-  checkPhoneNumber:checkPhoneNumber
+  checkPhoneNumber: checkPhoneNumber,
+  socialSignUp: socialSignUp,
+  changePassword: changePassword
 };

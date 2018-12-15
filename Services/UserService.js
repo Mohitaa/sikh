@@ -2,7 +2,7 @@
 
 var Models = require('../Models');
 var mongoose = require('mongoose');
-var getUser, createUser, getAllGeneratedCodes, updateUser, countUser, getObjectId;
+var getUser, createUser, getAllGeneratedCodes, updateUser, countUser, getObjectId, getOneUser;
 // Get Users from DB
 
 getObjectId =function (id) {
@@ -12,6 +12,9 @@ getObjectId =function (id) {
 };
 getUser = function (criteria, projection, options, callback) {
   Models.Users.find(criteria, projection, options, callback);
+};
+getOneUser = function (criteria, projection, options, callback) {
+  Models.Users.findOne(criteria, projection, options, callback);
 };
 
 
@@ -60,5 +63,6 @@ module.exports = {
   updateUser: updateUser,
   countUser: countUser,
   getAllGeneratedCodes:getAllGeneratedCodes,
-  getObjectId:getObjectId
+  getObjectId:getObjectId,
+  getOneUser:getOneUser
 };

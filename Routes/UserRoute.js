@@ -56,23 +56,60 @@ module.exports = [
       },
       validate: {
         payload: {
-          firstName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
-          lastName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
-          fatherName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
-          countryCode: Joi.string().max(4).optional().trim(),
-          phoneNo: Joi.string().regex(/^[0-9]+$/).min(5).required(),
-          district:Joi.string().optional().trim(),
-          tehsil: Joi.string().optional().trim(),
-          village: Joi.string().optional().trim(),
-          landmark: Joi.string().optional().trim(),
-          workAddress: Joi.string().optional().trim(),
-          education: Joi.string().optional().trim(),
-          occuption: Joi.string().optional().trim(),
-          bloodGroup: Joi.string().trim(),
-          gender: Joi.string().required().trim().valid([UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.MALE,UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.FEMALE,UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.OTHER]),
-          privacy: Joi.string().required().valid([UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.PRIVACY.OFF,UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.PRIVACY.ON]),
+          userName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).required(),
+          gender: Joi.string().optional().trim().valid([UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.MALE,UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.FEMALE,UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.OTHER]),
           password: Joi.string().required().min(5).trim(),
-          deviceToken: Joi.string().required().trim(),
+          deviceId: Joi.string().required().trim(),
+          email: Joi.string().email().required(),
+          social: Joi.any().optional(),
+          profilePic: Joi.any()
+              .meta({ swaggerType: 'file' })
+              .optional()
+              .description('image file')
+        },
+        failAction: UniversalFunctions.failActionFunction
+      },
+      plugins: {
+        'hapi-swagger': {
+          payloadType: 'form',
+          responseMessages: UniversalFunctions.CONFIG.APP_CONSTANTS.swaggerDefaultResponseMessages
+        }
+      }
+    }
+  },
+  {
+    method: 'POST',
+    path: '/api/customer/socialSignUp',
+    handler: function (request, reply) {
+      var payloadData = request.payload;
+      Controller.UserController.socialSignUp(payloadData, function (err, data) {
+        if (err) {
+          reply(UniversalFunctions.sendError(err));
+        } else {
+          reply(UniversalFunctions.sendSuccess(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.SUCCESS.CREATED, data)).code(201);
+        }
+      });
+    },
+    config: {
+      description: 'Social Sign Up Customer',
+      tags: ['api', 'customer'],
+      payload: {
+        maxBytes: 2000000,
+        parse: true,
+        output: 'file'
+      },
+      validate: {
+        payload: {
+          userName: Joi.string().regex(/^[a-zA-Z ]+$/).trim().min(2).optional(),
+          gender: Joi.string().optional().trim().valid([UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.MALE,UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.FEMALE,UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.GENDER.OTHER]),
+          email: Joi.string().email().required(),
+          social: Joi.object().required().keys({
+            socialMode: Joi.string().required().valid([UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.SOCIAL.FACEBOOK, UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.SOCIAL.GOOGLE_PLUS, UniversalFunctions.CONFIG.APP_CONSTANTS.DATABASE.SOCIAL.TWITTER]),
+            socialId: Joi.string().required().trim()
+          }),
+          deviceId: Joi.string().required().trim(),
+          password: Joi.string().optional().min(5).trim(),
+          deviceToken: Joi.string().optional().allow(''),
           profilePic: Joi.any()
               .meta({ swaggerType: 'file' })
               .optional()
@@ -168,9 +205,10 @@ module.exports = [
       tags: ['api', 'user'],
       validate: {
         payload: {
-          phoneNo: Joi.string().regex(/^[0-9]+$/).min(5).required(),
+          email: Joi.string().email().required(),
           password: Joi.string().required().min(5).trim(),
           flushPreviousSessions: Joi.boolean().required(),
+          deviceId: Joi.string().required().trim(),
           deviceToken: Joi.string().optional().allow('')
         },
         failAction: UniversalFunctions.failActionFunction
@@ -201,6 +239,39 @@ module.exports = [
       validate: {
         payload: {
           phoneNo: Joi.string().regex(/^[0-9]+$/).min(5).required(),
+        },
+        failAction: UniversalFunctions.failActionFunction
+      },
+      plugins: {
+        'hapi-swagger': {
+          responseMessages: UniversalFunctions.CONFIG.APP_CONSTANTS.swaggerDefaultResponseMessages
+        }
+      }
+    }
+  },
+  {
+    method: 'PUT',
+    path: '/api/user/updatePassword',
+    handler: function (request, reply) {
+      var queryData = request.payload;
+      var userData = request.auth && request.auth.credentials && request.auth.credentials.userData || null;
+      Controller.UserController.changePassword(queryData, userData, function (err, data) {
+        if (err) {
+          reply(UniversalFunctions.sendError(err));
+        } else {
+          reply(UniversalFunctions.sendSuccess(UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.SUCCESS.UPDATED));
+        }
+      });
+    },
+    config: {
+      description: 'Change Password User',
+      tags: ['api', 'user'],
+      auth: 'UserAuth',
+      validate: {
+        headers: UniversalFunctions.authorizationHeaderObj,
+        payload: {
+          oldPassword: Joi.string().required().min(5).trim(),
+          newPassword: Joi.string().required().min(5).trim()
         },
         failAction: UniversalFunctions.failActionFunction
       },

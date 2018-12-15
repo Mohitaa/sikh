@@ -4,12 +4,12 @@ var Schema = mongoose.Schema;
 var Config = require('../Config');
 
 var Users = new Schema({
-  firstName: {type: String, trim: true, index: true, default: null, sparse: true},
-  lastName: {type: String, trim: true, index: true, default: null, sparse: true},
+  userName: {type: String, trim: true,required: true,  index: true, default: null, sparse: true},
   fatherName: {type: String, trim: true, index: true, default: null, sparse: true},
-  countryCode: {type: String, required: true, trim: true, min: 2, max: 5},
-  phoneNo: {type: String, required: true, trim: true, index: true, unique: true, min: 5, max: 15},
+  countryCode: {type: String,  trim: true, min: 2, max: 5},
+  phoneNo: {type: String, trim: true, index: true, unique: true, min: 5, max: 15},
   newNumber: {type: String, trim: true, sparse: true, index: true, unique: true, min: 5, max: 15},
+  email: { type: String, trim: true, unique: true, index: true, required: true },
   district:{type: String, trim: true, sparse: true},
   tehsil: {type: String, trim: true, sparse: true},
   village: {type: String, trim: true, sparse: true},
@@ -21,7 +21,6 @@ var Users = new Schema({
 
   bloodGroup: {type: String, trim: true, sparse: true},
   gender: {type: String, type: String,
-    required: true,
     default: Config.APP_CONSTANTS.DATABASE.GENDER.MALE,
     enum: [
       Config.APP_CONSTANTS.DATABASE.GENDER.MALE,
@@ -31,7 +30,6 @@ var Users = new Schema({
   },
   privacy: {
     type: String, type: String,
-    required: true,
     default: Config.APP_CONSTANTS.DATABASE.PRIVACY.OFF,
     enum: [
       Config.APP_CONSTANTS.DATABASE.PRIVACY.OFF,
@@ -40,7 +38,6 @@ var Users = new Schema({
   },
   userType: {
     type: String, type: String,
-    required: true,
     default: Config.APP_CONSTANTS.DATABASE.USER_ROLES.USER,
     enum: [
       Config.APP_CONSTANTS.DATABASE.USER_ROLES.USER,
@@ -68,10 +65,11 @@ var Users = new Schema({
   },
   password: {type: String},
   passwordResetToken: {type: String, trim: true, unique: true, index: true, sparse: true},
-  registrationDate: {type: Date, default: Date.now, required: true},
+  registrationDate: {type: Date, default: Date.now},
   OTPCode: {type: String, trim: true, unique: true, sparse: true, index: true},
+  mPIN: {type: Number},
   OTPCount: {type: Number, default: 1},
-  OTPGeneratedDate: {type: Date, default: Date.now, required: true},
+  OTPGeneratedDate: {type: Date, default: Date.now},
   accessToken: {type: String, trim: true, index: true, unique: true, sparse: true},
   deviceToken: {type: String, trim: true, index: true, unique: true, sparse: true},
   deviceType: {
@@ -81,9 +79,9 @@ var Users = new Schema({
       Config.APP_CONSTANTS.DATABASE.DEVICE_TYPES.ANDROID
     ]
   },
+  deviceId :{type: String, trim: true, index: true, unique: true, sparse: true},
   isBlocked: {type: Boolean, default: false, required: true},
   isDeleted: {type: Boolean, default: false, required: true},
-  phoneVerified: {type: Boolean, default: false, required: true},
   profilePicURL: {
     original: {type: String, default: null},
     thumbnail: {type: String, default: null}
